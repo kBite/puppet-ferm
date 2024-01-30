@@ -76,6 +76,14 @@
 # @param saddr_type
 #   Match source packets based on their address type
 #
+# @param dst_set
+#   Match the destination IP/Port/MAC against an existing set.
+#   Caveat: `ferm::rule` does not create or manage this set
+#
+# @param src_set
+#   Match the source IP/Port/MAC against an existing set.
+#   Caveat: `ferm::rule` does not create or manage this set
+#
 # @param ctstate
 #   Check conntrack information for ctstate, e.g. [ 'RELATED', 'ESTABLISHED' ]
 #
@@ -90,7 +98,7 @@
 # @param negate
 #   Single keyword or array of keywords to negate
 #   Default value: undef
-#   Allowed values: (saddr|daddr|sport|dport) (see Ferm::Negation type)
+#   Allowed values: (see Ferm::Negation type)
 #
 define ferm::rule (
   String[1]                           $chain,
@@ -106,6 +114,8 @@ define ferm::rule (
   Optional[String[1]]                 $outerface     = undef,
   Optional[Ferm::Addr_Type]           $daddr_type    = undef,
   Optional[Ferm::Addr_Type]           $saddr_type    = undef,
+  Optional[String[1]]                 $dst_set       = undef,
+  Optional[String[1]]                 $src_set       = undef,
   Optional[Variant[String[1], Array]] $ctstate       = undef,
   Enum['absent','present']            $ensure        = 'present',
   Ferm::Tables                        $table         = 'filter',
@@ -135,6 +145,8 @@ define ferm::rule (
 
   $negate_saddr = 'saddr' in $_negate ? { true => '!', false => '', }
   $negate_daddr = 'daddr' in $_negate ? { true => '!', false => '', }
+  $negate_src_set = 'src_set' in $_negate ? { true => '!', false => '', }
+  $negate_dst_set = 'dst_set' in $_negate ? { true => '!', false => '', }
 
   $dport_real = $dport ? {
     Ferm::Port => ferm::port_to_string('destination', $dport, 'dport' in $_negate),
@@ -154,6 +166,16 @@ define ferm::rule (
   $saddr_real = $saddr ? {
     Ferm::Address => "saddr ${negate_saddr}@ipfilter((${join(flatten([$saddr]).unique, ' ')}))",
     default       => '',
+  }
+
+  $dst_set_real = $dst_set ? {
+    String  => "mod set ${negate_dst_set} set ${dst_set} dst",
+    default => '',
+  }
+
+  $src_set_real = $src_set ? {
+    String  => "mod set ${negate_src_set} set ${src_set} src",
+    default => '',
   }
 
   $daddr_type_real = $daddr_type ? {
@@ -200,8 +222,10 @@ define ferm::rule (
     ${sport_real}         \
     ${daddr_real}         \
     ${daddr_type_real}    \
+    ${dst_set_real}       \
     ${saddr_real}         \
     ${saddr_type_real}    \
+    ${src_set_real}       \
     ${outerface_real}     \
     ${ctstate_real}       \
     ${action_real};
