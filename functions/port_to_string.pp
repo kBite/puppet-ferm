@@ -4,11 +4,14 @@
 #
 # @example ferm::port_to_string(direction, port, negate)
 #
+#   ferm::port_to_string('destination', [22, '22:222'], true)
+#   # => "mod multiport destination-ports !(22 '22:222')"
+#
 #   ferm::port_to_string('destination', '22:222', true)
 #   # => "dport !22:222"
 #
 #   ferm::port_to_string('source', [22, 222], false)
-#   # => "mod multiport source-ports (22, 222)"
+#   # => "mod multiport source-ports (22 222)"
 #
 #   ferm::port_to_string('destination')
 #   # => ""
@@ -20,7 +23,7 @@
 #   Either 'destination' or 'source'
 #
 # @param port
-#   Ferm::Port (e.g. 22, '22:222', [ 22, 222 ]
+#   Ferm::Port (e.g. 22, '22:222', [ 22, 222 ], [ 22, '22:222' ])
 #
 # @param negate
 #   Negate port/ports
@@ -33,40 +36,51 @@ function ferm::port_to_string (
   Optional[Ferm::Port]          $port   = undef,
   Boolean                       $negate = false,
 ) >> String {
-  # can't negate a port not given
+
+  # return early
   #
-  $_negate = if $port and $negate { '!' } else { '' }
+  unless $port { return '' }
 
-  case $port {
-    Array: {
-      $ports = join($port, ' ')
+  $_negate = if $negate { '!' } else { '' }
 
-      "mod multiport ${direction}-ports ${_negate}(${ports})"
-    }
-    Integer: {
-      "${direction[0]}port ${_negate}${port}"
-    }
-    Pattern[/^\d*:\d+$/]: {
-      $portrange = split($port, /:/)
+  # ensure unique elements in flat Array
+  #
+  $ports = [ $port ].flatten.unique.map |Ferm::Port $element| {
 
-      $lower = if $portrange[0].empty { 0 } else { Integer($portrange[0]) }
-      $upper = Integer($portrange[1])
+    case $element {
+      Pattern[/^\d*:\d+$/]: {
+        $portrange = split($element, /:/)
 
-      assert_type(Tuple[Stdlib::Port, Stdlib::Port], [$lower, $upper]) |$expected, $actual| {
-        fail("The data type should be \'${expected}\', not \'${actual}\'. The data is [${lower}, ${upper}])}.")
+        $lower = if $portrange[0].empty { 0 } else { Integer($portrange[0]) }
+        $upper = Integer($portrange[1])
+
+        assert_type(Tuple[Stdlib::Port, Stdlib::Port], [$lower, $upper]) |$expected, $actual| {
+          fail("The data type should be \'${expected}\', not \'${actual}\'. The data is [${lower}, ${upper}])}.")
+        }
+
+        if $lower > $upper {
+          fail("Lower port number of the port range is larger than upper. ${lower}:${upper}")
+        }
+
+        "${lower}:${upper}"
       }
-
-      if $lower > $upper {
-        fail("Lower port number of the port range is larger than upper. ${lower}:${upper}")
+      Integer: {
+        $element
       }
+      default: {
+        fail("invalid ${direction}-port: ${_negate}${element}")
+      }
+    } # end case
 
-      "${direction[0]}port ${_negate}${lower}:${upper}"
-    }
-    Undef: {
-      ''
-    }
-    default: {
-      fail("invalid ${direction}-port: ${_negate}${port}")
-    }
-  }
+  } # end map
+
+  if $ports.length == 1 {
+
+    "${direction[0]}port ${_negate}${ports[0]}"
+
+  } else {
+
+    "mod multiport ${direction}-ports ${_negate}(${ports.join(' ')})"
+
+  } # end if
 }
