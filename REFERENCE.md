@@ -545,6 +545,8 @@ The following parameters are available in the `ferm::rule` defined type:
 * [`outerface`](#-ferm--rule--outerface)
 * [`daddr_type`](#-ferm--rule--daddr_type)
 * [`saddr_type`](#-ferm--rule--saddr_type)
+* [`dst_set`](#-ferm--rule--dst_set)
+* [`src_set`](#-ferm--rule--src_set)
 * [`ctstate`](#-ferm--rule--ctstate)
 * [`ensure`](#-ferm--rule--ensure)
 * [`table`](#-ferm--rule--table)
@@ -649,6 +651,24 @@ Match source packets based on their address type
 
 Default value: `undef`
 
+##### <a name="-ferm--rule--dst_set"></a>`dst_set`
+
+Data type: `Optional[String[1]]`
+
+Match the destination IP/Port/MAC against an existing set.
+Caveat: `ferm::rule` does not create or manage this set
+
+Default value: `undef`
+
+##### <a name="-ferm--rule--src_set"></a>`src_set`
+
+Data type: `Optional[String[1]]`
+
+Match the source IP/Port/MAC against an existing set.
+Caveat: `ferm::rule` does not create or manage this set
+
+Default value: `undef`
+
 ##### <a name="-ferm--rule--ctstate"></a>`ctstate`
 
 Data type: `Optional[Variant[String[1], Array]]`
@@ -681,7 +701,7 @@ Data type: `Optional[Ferm::Negation]`
 
 Single keyword or array of keywords to negate
 Default value: undef
-Allowed values: (saddr|daddr|sport|dport) (see Ferm::Negation type)
+Allowed values: (see Ferm::Negation type)
 
 Default value: `undef`
 
@@ -779,7 +799,18 @@ Alias of `Variant[Array[Ferm::Address], Stdlib::IP::Address, String[1]]`
 
 list of keywords that support negation
 
-Alias of `Variant[Enum['saddr', 'daddr', 'sport', 'dport'], Array[Enum['saddr', 'daddr', 'sport', 'dport']]]`
+Alias of
+
+```puppet
+Variant[Array[Ferm::Negation], Enum[
+    'saddr',
+    'daddr',
+    'sport',
+    'dport',
+    'src_set',
+    'dst_set',
+  ]]
+```
 
 ### <a name="Ferm--Policies"></a>`Ferm::Policies`
 
