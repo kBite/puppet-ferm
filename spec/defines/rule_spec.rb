@@ -142,6 +142,22 @@ describe 'ferm::rule', type: :define do
         it { is_expected.to contain_concat__fragment('filter-OUTPUT-config-include') }
       end
 
+      context 'with a valid array of destination-port ranges' do
+        let(:title) { 'filter-array-portranges' }
+        let :params do
+          {
+            chain: 'INPUT',
+            action: 'ACCEPT',
+            proto: 'tcp',
+            dport: [20000, 25000, '20000:25000'],
+            saddr: '127.0.0.1'
+          }
+        end
+
+        it { is_expected.to compile.with_all_deps }
+        it { is_expected.to contain_concat__fragment('INPUT-filter-array-portranges').with_content("mod comment comment 'filter-array-portranges' proto tcp mod multiport destination-ports (20000 25000 20000:25000) saddr @ipfilter((127.0.0.1)) ACCEPT;\n") }
+      end
+
       context 'with a valid destination-port range with negation of destination-port and source-address' do
         let(:title) { 'filter-portrange-negated' }
         let :params do
