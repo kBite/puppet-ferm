@@ -10,6 +10,7 @@ describe 'Ferm::Port' do
       '25:30',
       ':22',
       [80, 443, 8080, 8443],
+      [80, 443, 8080, 8443, [':22', '25:30']],
     ].each do |value|
       describe value.inspect do
         it { is_expected.to allow_value(value) }

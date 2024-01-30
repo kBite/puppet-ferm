@@ -3,10 +3,10 @@
 # allowed variants:
 # -----------------
 # + single Integer port
-# + Array of Integers (creates a multiport matcher)
 # + ferm range port-spec (pair of colon-separated integer, assumes 0 if first is omitted)
+# + array of interger port(s) and/or ferm range port-spec(s)
 type Ferm::Port = Variant[
+  Array[Ferm::Port],
   Stdlib::Port,
-  Array[Stdlib::Port],
   Pattern['^\d*:\d+$'],
 ]
