@@ -340,6 +340,41 @@ describe 'ferm::rule', type: :define do
         it { is_expected.to contain_concat__fragment('nat-OUTPUT-config-include') }
       end
 
+      context 'with src_set on INPUT chain with jump action' do
+        let(:title) { 'src_set_jump_SMTP_FILTER' }
+        let :params do
+          {
+            proto: 'tcp',
+            table: 'filter',
+            chain: 'INPUT',
+            src_set: 'smtp_filter_set',
+            action: 'SMTP_FILTER',
+          }
+        end
+
+        it { is_expected.to compile.with_all_deps }
+        it { is_expected.to contain_concat__fragment('INPUT-src_set_jump_SMTP_FILTER').with_content("mod comment comment 'src_set_jump_SMTP_FILTER' proto tcp mod set set smtp_filter_set src jump SMTP_FILTER;\n") }
+        it { is_expected.to contain_concat__fragment('filter-INPUT-config-include') }
+      end
+
+      context 'with negated dst_set on INPUT chain with jump action' do
+        let(:title) { 'not_dst_set_jump_SMTP_FILTER' }
+        let :params do
+          {
+            proto: 'tcp',
+            table: 'filter',
+            chain: 'INPUT',
+            dst_set: 'smtp_filter_set',
+            action: 'SMTP_FILTER',
+            negate: %w[dst_set]
+          }
+        end
+
+        it { is_expected.to compile.with_all_deps }
+        it { is_expected.to contain_concat__fragment('INPUT-not_dst_set_jump_SMTP_FILTER').with_content("mod comment comment 'not_dst_set_jump_SMTP_FILTER' proto tcp mod set ! set smtp_filter_set dst jump SMTP_FILTER;\n") }
+        it { is_expected.to contain_concat__fragment('filter-INPUT-config-include') }
+      end
+
       context 'with outerface docker0 matching ctstates' do
         let(:title) { 'filter_FORWARD_ctstate_accept' }
         let :params do
